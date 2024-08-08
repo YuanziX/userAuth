@@ -39,7 +39,6 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 		LastName    string `json:"last_name"`
 		Password    string `json:"password"`
 		DateOfBirth string `json:"date_of_birth"`
-		Somethingso string `json:"something"`
 	}
 
 	params := parameters{}
@@ -100,7 +99,12 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusC
 		return http.StatusUnauthorized, errors.New("incorrect email or password")
 	}
 
-	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"login": "successful"})
+	tokenString, err := utils.CreateToken(params.Email)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"login": "successful", "token_string": tokenString})
 }
 
 func (s *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {

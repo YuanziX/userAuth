@@ -1,15 +1,17 @@
 package utils
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/yuanzix/userAuth/internal/database"
 )
 
-func CreateToken(user database.User) (string, error) {
+func CreateToken(email string) (string, error) {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.UserID,
-		"uAt": user.UpdatedAt,
-		"iss": "userAuth",
+		"email": email,
+		"iss":   "userAuth",
+		"exp":   time.Now().Add(time.Hour * 24).Unix(),
 	})
 
 	secretKey, _ := ReadJWTSecret()
@@ -20,5 +22,21 @@ func CreateToken(user database.User) (string, error) {
 	}
 
 	return tokenString, nil
+}
 
+func ValidateToken(tokenString string) error {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		secretKey, _ := ReadJWTSecret()
+		return secretKey, nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if !token.Valid {
+		return fmt.Errorf("invalid token")
+	}
+
+	return nil
 }
