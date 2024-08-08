@@ -100,6 +100,19 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getHashedPassword = `-- name: GetHashedPassword :one
+SELECT hashed_password
+FROM users
+WHERE email = $1
+`
+
+func (q *Queries) GetHashedPassword(ctx context.Context, email string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getHashedPassword, email)
+	var hashed_password string
+	err := row.Scan(&hashed_password)
+	return hashed_password, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT user_id, email, username, hashed_password, first_name, last_name, date_of_birth, created_at, updated_at
 FROM users

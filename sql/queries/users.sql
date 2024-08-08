@@ -18,3 +18,8 @@ WHERE email = $1;
 DELETE
 FROM users
 WHERE email = $1;
+
+-- name: GetHashedPassword :one
+SELECT hashed_password
+FROM users
+WHERE email = $1;

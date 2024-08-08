@@ -16,6 +16,7 @@ type Storage interface {
 	UpdateUser(*models.User) (*database.User, error)
 	GetUserByEmail(string) (*database.User, error)
 	GetAllUsers() (*[]database.User, error)
+	GetHashedPassword(string) (hashedPassword string, err error)
 }
 
 type PostgresStore struct {
@@ -83,4 +84,14 @@ func (s *PostgresStore) GetAllUsers() (*[]database.User, error) {
 		return nil, err
 	}
 	return &users, nil
+}
+
+func (s *PostgresStore) GetHashedPassword(email string) (hashedPassword string, err error) {
+	hashedPassword, err = s.queries.GetHashedPassword(context.Background(), email)
+
+	if err != nil {
+		return "", err
+	}
+
+	return hashedPassword, nil
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/yuanzix/userAuth/models"
@@ -72,6 +73,34 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 	}
 
 	return utils.WriteJSON(w, http.StatusCreated, models.DatabaseUserToUserResponse(databaseUser))
+}
+
+func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
+	type parameters struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	params := parameters{}
+
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	hashedPassword, err := s.store.GetHashedPassword(params.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return http.StatusUnauthorized, errors.New("incorrect email or password")
+		}
+		return http.StatusInternalServerError, err
+	}
+
+	err = utils.CompareHashAndPassword(hashedPassword, params.Password)
+	if err != nil {
+		return http.StatusUnauthorized, errors.New("incorrect email or password")
+	}
+
+	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"login": "successful"})
 }
 
 func (s *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {

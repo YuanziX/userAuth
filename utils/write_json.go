@@ -12,7 +12,7 @@ func WriteJSON(w http.ResponseWriter, status int, v any) (int, error) {
 	return status, json.NewEncoder(w).Encode(v)
 }
 
-func WriteErrorJSON(w http.ResponseWriter, code int, msg string) {
+func WriteErrorJSON(w http.ResponseWriter, code int, msg string) (int, error) {
 	if code > 499 {
 		log.Println("Responding with 5XX error:", msg)
 	}
@@ -21,5 +21,5 @@ func WriteErrorJSON(w http.ResponseWriter, code int, msg string) {
 		Error string `json:"error"`
 	}
 
-	WriteJSON(w, code, errResponse{Error: msg})
+	return WriteJSON(w, code, errResponse{Error: msg})
 }

@@ -30,14 +30,17 @@ func (s *APIServer) Run() {
 	router.HandleFunc("POST /user", makeHTTPHandlerFunc(s.handleCreateUser))
 	router.HandleFunc("DELETE /user/{email}", makeHTTPHandlerFunc(s.handleDeleteUser))
 
+	router.HandleFunc("POST /login", makeHTTPHandlerFunc(s.handleLogin))
+
 	log.Printf("JSON API server running on port: %v\n", s.listenAddress)
 	http.ListenAndServe(s.listenAddress, router)
 }
 
 func makeHTTPHandlerFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if _, err := f(w, r); err != nil {
-			utils.WriteErrorJSON(w, http.StatusBadRequest, err.Error())
+		code, err := f(w, r)
+		if err != nil {
+			utils.WriteErrorJSON(w, code, err.Error())
 		}
 	}
 }
