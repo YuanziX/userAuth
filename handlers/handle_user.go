@@ -118,14 +118,9 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusC
 }
 
 func (s *APIServer) handleLogout(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
-	auth, err := utils.ExtractTokenAuth(r)
+	statusCode, err = s.deleteAuth(r)
 	if err != nil {
-		return http.StatusUnauthorized, err
-	}
-
-	err = s.store.DeleteAuth(*auth)
-	if err != nil {
-		return http.StatusInternalServerError, err
+		return statusCode, err
 	}
 	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"logged_out": "successfully"})
 }
@@ -133,7 +128,10 @@ func (s *APIServer) handleLogout(w http.ResponseWriter, r *http.Request) (status
 func (s *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
 	email := r.PathValue("email")
 
-	s.handleLogout(w, r)
+	statusCode, err = s.deleteAuth(r)
+	if err != nil {
+		return statusCode, err
+	}
 
 	if err = s.store.DeleteUser(email); err != nil {
 		if err == sql.ErrNoRows {
@@ -143,4 +141,18 @@ func (s *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) (st
 	}
 
 	return utils.WriteJSON(w, http.StatusOK, map[string]string{"deleted": email})
+}
+
+func (s *APIServer) deleteAuth(r *http.Request) (statusCode int, err error) {
+	auth, err := utils.ExtractTokenAuth(r)
+	if err != nil {
+		return http.StatusUnauthorized, err
+	}
+
+	err = s.store.DeleteAuth(*auth)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	return http.StatusOK, nil
 }
