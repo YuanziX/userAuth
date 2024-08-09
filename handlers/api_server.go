@@ -24,19 +24,20 @@ func NewAPIServer(listenAddress string, store utils.Storage) *APIServer {
 func (s *APIServer) Run() {
 	router := http.NewServeMux()
 
-	router.HandleFunc("GET /users", makeHTTPHandlerFunc(s.handleGetUsers))
+	router.HandleFunc("GET /users", s.makeHTTPHandlerFunc(s.handleGetUsers))
 
-	router.HandleFunc("POST /user", makeHTTPHandlerFunc(s.handleCreateUser))
-	router.HandleFunc("GET /user/{email}", makeProtectedHandlerFunc(s.handleGetUserByEmail))
-	router.HandleFunc("DELETE /user/{email}", makeProtectedHandlerFunc(s.handleDeleteUser))
+	router.HandleFunc("POST /user", s.makeHTTPHandlerFunc(s.handleCreateUser))
+	router.HandleFunc("GET /user/{email}", s.makeProtectedHandlerFunc(s.handleGetUserByEmail))
+	router.HandleFunc("DELETE /user/{email}", s.makeProtectedHandlerFunc(s.handleDeleteUser))
 
-	router.HandleFunc("POST /login", makeHTTPHandlerFunc(s.handleLogin))
+	router.HandleFunc("POST /login", s.makeHTTPHandlerFunc(s.handleLogin))
+	router.HandleFunc("GET /logout", s.makeProtectedHandlerFunc(s.handleLogout))
 
 	log.Printf("JSON API server running on port: %v\n", s.listenAddress)
 	http.ListenAndServe(s.listenAddress, router)
 }
 
-func makeHTTPHandlerFunc(f apiFunc) http.HandlerFunc {
+func (s *APIServer) makeHTTPHandlerFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		code, err := f(w, r)
 		if err != nil {
@@ -45,15 +46,9 @@ func makeHTTPHandlerFunc(f apiFunc) http.HandlerFunc {
 	}
 }
 
-func makeProtectedHandlerFunc(f apiFunc) http.HandlerFunc {
+func (s *APIServer) makeProtectedHandlerFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
-		if tokenString == "" {
-			utils.WriteErrorJSON(w, http.StatusUnauthorized, "jwt token string not provided")
-			return
-		}
-
-		if err := utils.ValidateToken(tokenString); err != nil {
+		if err := utils.ValidateToken(r, s.store.CheckAuthExists); err != nil {
 			utils.WriteErrorJSON(w, http.StatusUnauthorized, "Invalid token: "+err.Error())
 			return
 		}

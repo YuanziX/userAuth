@@ -103,7 +103,13 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusC
 		return http.StatusUnauthorized, errors.New("incorrect email or password")
 	}
 
-	tokenString, err := utils.CreateToken(params.Email)
+	auth, err := s.store.CreateAuth(params.Email)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	tokenString, err := utils.SignIn(*auth)
+
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
@@ -111,8 +117,23 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusC
 	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"login": "successful", "token_string": tokenString})
 }
 
+func (s *APIServer) handleLogout(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
+	auth, err := utils.ExtractTokenAuth(r)
+	if err != nil {
+		return http.StatusUnauthorized, err
+	}
+
+	err = s.store.DeleteAuth(*auth)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"logged_out": "successfully"})
+}
+
 func (s *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
 	email := r.PathValue("email")
+
+	s.handleLogout(w, r)
 
 	if err = s.store.DeleteUser(email); err != nil {
 		if err == sql.ErrNoRows {

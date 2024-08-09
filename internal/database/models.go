@@ -6,7 +6,15 @@ package database
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
+
+type Auth struct {
+	AuthID    int32
+	UserEmail string
+	AuthUuid  uuid.UUID
+}
 
 type User struct {
 	UserID         int32

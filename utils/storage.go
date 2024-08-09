@@ -17,6 +17,9 @@ type Storage interface {
 	GetUserByEmail(string) (*database.User, error)
 	GetAllUsers() (*[]database.User, error)
 	GetHashedPassword(string) (hashedPassword string, err error)
+	CreateAuth(string) (*database.Auth, error)
+	DeleteAuth(models.AuthDetails) error
+	CheckAuthExists(models.AuthDetails) (bool, error)
 }
 
 type PostgresStore struct {
@@ -94,4 +97,30 @@ func (s *PostgresStore) GetHashedPassword(email string) (hashedPassword string, 
 	}
 
 	return hashedPassword, nil
+}
+
+func (s *PostgresStore) CreateAuth(email string) (*database.Auth, error) {
+	auth, err := s.queries.CreateAuth(context.Background(), email)
+
+	if err != nil {
+		return &database.Auth{}, err
+	}
+	return &auth, nil
+}
+
+func (s *PostgresStore) DeleteAuth(auth models.AuthDetails) error {
+	err := s.queries.DeleteAuth(context.Background(), database.DeleteAuthParams{
+		UserEmail: auth.UserEmail,
+		AuthUuid:  auth.AuthUUID,
+	})
+
+	return err
+}
+
+func (s *PostgresStore) CheckAuthExists(auth models.AuthDetails) (exists bool, err error) {
+	exists, err = s.queries.CheckAuthExists(context.Background(), database.CheckAuthExistsParams{
+		UserEmail: auth.UserEmail,
+		AuthUuid:  auth.AuthUUID,
+	})
+	return
 }
