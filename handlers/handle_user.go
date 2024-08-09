@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/yuanzix/userAuth/models"
 	"github.com/yuanzix/userAuth/utils"
@@ -68,6 +69,9 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 
 	databaseUser, err := s.store.CreateUser(&user)
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			return http.StatusConflict, errors.New("the email is already registered")
+		}
 		return http.StatusInternalServerError, err
 	}
 
