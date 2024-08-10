@@ -12,11 +12,13 @@ import (
 
 type Storage interface {
 	CreateUser(*models.User) (*database.User, error)
+	VerifyUser(string) error
 	DeleteUser(string) error
 	UpdateUser(*models.User) (*database.User, error)
 	GetUserByEmail(string) (*database.User, error)
 	GetAllUsers() (*[]database.User, error)
 	GetHashedPassword(string) (hashedPassword string, err error)
+	GetAuth(string) (*database.Auth, error)
 	CreateAuth(string) (*database.Auth, error)
 	DeleteAuth(models.AuthDetails) error
 	CheckAuthExists(models.AuthDetails) (bool, error)
@@ -64,6 +66,11 @@ func (s *PostgresStore) CreateUser(u *models.User) (*database.User, error) {
 	return &user, err
 }
 
+func (s *PostgresStore) VerifyUser(email string) error {
+	err := s.queries.VerifyUser(context.Background(), email)
+	return err
+}
+
 func (s *PostgresStore) DeleteUser(email string) error {
 	err := s.queries.DeleteUser(context.Background(), email)
 	return err
@@ -102,6 +109,14 @@ func (s *PostgresStore) GetHashedPassword(email string) (hashedPassword string, 
 func (s *PostgresStore) CreateAuth(email string) (*database.Auth, error) {
 	auth, err := s.queries.CreateAuth(context.Background(), email)
 
+	if err != nil {
+		return &database.Auth{}, err
+	}
+	return &auth, nil
+}
+
+func (s *PostgresStore) GetAuth(email string) (*database.Auth, error) {
+	auth, err := s.queries.GetAuth(context.Background(), email)
 	if err != nil {
 		return &database.Auth{}, err
 	}

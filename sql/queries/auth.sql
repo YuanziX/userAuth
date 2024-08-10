@@ -4,6 +4,11 @@ INSERT INTO
 VALUES ($1)
     RETURNING *;
 
+-- name: GetAuth :one
+SELECT * FROM auth
+WHERE
+    user_email = $1;
+
 -- name: DeleteAuth :exec
 DELETE FROM auth
 WHERE

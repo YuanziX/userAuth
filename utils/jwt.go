@@ -12,16 +12,6 @@ import (
 	"github.com/yuanzix/userAuth/models"
 )
 
-func SignIn(authD database.Auth) (string, error) {
-
-	token, err := CreateToken(authD)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
 func CreateToken(auth database.Auth) (string, error) {
 	claims := jwt.MapClaims{
 		"email":     auth.UserEmail,

@@ -23,3 +23,8 @@ WHERE email = $1;
 SELECT hashed_password
 FROM users
 WHERE email = $1;
+
+-- name: VerifyUser :exec
+UPDATE users
+SET verified = TRUE
+WHERE email = $1;

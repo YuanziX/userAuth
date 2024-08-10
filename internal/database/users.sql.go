@@ -15,7 +15,7 @@ INSERT INTO
     users (email, username, hashed_password, first_name, last_name, date_of_birth)
 VALUES
     ($1, $2, $3, $4, $5, $6)
-RETURNING user_id, email, username, hashed_password, first_name, last_name, date_of_birth, created_at, updated_at
+RETURNING user_id, email, username, hashed_password, first_name, last_name, date_of_birth, created_at, updated_at, verified
 `
 
 type CreateUserParams struct {
@@ -47,6 +47,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.DateOfBirth,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Verified,
 	)
 	return i, err
 }
@@ -63,7 +64,7 @@ func (q *Queries) DeleteUser(ctx context.Context, email string) error {
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT user_id, email, username, hashed_password, first_name, last_name, date_of_birth, created_at, updated_at
+SELECT user_id, email, username, hashed_password, first_name, last_name, date_of_birth, created_at, updated_at, verified
 FROM users
 `
 
@@ -86,6 +87,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 			&i.DateOfBirth,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Verified,
 		); err != nil {
 			return nil, err
 		}
@@ -114,7 +116,7 @@ func (q *Queries) GetHashedPassword(ctx context.Context, email string) (string, 
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT user_id, email, username, hashed_password, first_name, last_name, date_of_birth, created_at, updated_at
+SELECT user_id, email, username, hashed_password, first_name, last_name, date_of_birth, created_at, updated_at, verified
 FROM users
 WHERE email = $1
 `
@@ -132,6 +134,18 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.DateOfBirth,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Verified,
 	)
 	return i, err
+}
+
+const verifyUser = `-- name: VerifyUser :exec
+UPDATE users
+SET verified = TRUE
+WHERE email = $1
+`
+
+func (q *Queries) VerifyUser(ctx context.Context, email string) error {
+	_, err := q.db.ExecContext(ctx, verifyUser, email)
+	return err
 }

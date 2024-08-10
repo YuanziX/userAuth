@@ -26,4 +26,5 @@ type User struct {
 	DateOfBirth    time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	Verified       bool
 }

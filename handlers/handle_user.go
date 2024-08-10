@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -75,7 +76,41 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 		return http.StatusInternalServerError, err
 	}
 
+	tokenString, err := s.createAuthAndToken(params.Email)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	url, _ := utils.ReadBackendURL()
+	err = utils.SendMail(params.Email, "Verify your email", fmt.Sprintf("Click here to verify your email: %v/user/%v/verify?token=%v", url, databaseUser.Email, tokenString))
+	if err != nil {
+		response := map[string]interface{}{
+			"message": "account created, but could not send email",
+			"user":    models.DatabaseUserToUserResponse(databaseUser),
+			"error":   "email not sent",
+		}
+		return utils.WriteJSON(w, http.StatusCreated, response)
+	}
+
 	return utils.WriteJSON(w, http.StatusCreated, models.DatabaseUserToUserResponse(databaseUser))
+}
+
+func (s *APIServer) handleVerifyUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
+	email := r.PathValue("email")
+	if email == "" {
+		return http.StatusBadRequest, errors.New("email not provided")
+	}
+
+	if err = utils.ValidateToken(r, s.store.CheckAuthExists); err != nil {
+		return http.StatusUnauthorized, errors.New("invalid token")
+	}
+
+	err = s.store.VerifyUser(email)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{"verified": email})
 }
 
 func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
@@ -90,7 +125,7 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusC
 		return http.StatusBadRequest, err
 	}
 
-	hashedPassword, err := s.store.GetHashedPassword(params.Email)
+	user, err := s.store.GetUserByEmail(params.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return http.StatusUnauthorized, errors.New("incorrect email or password")
@@ -98,18 +133,16 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusC
 		return http.StatusInternalServerError, err
 	}
 
-	err = utils.CompareHashAndPassword(hashedPassword, params.Password)
+	if !user.Verified {
+		return http.StatusUnauthorized, errors.New("email not verified")
+	}
+
+	err = utils.CompareHashAndPassword(user.HashedPassword, params.Password)
 	if err != nil {
 		return http.StatusUnauthorized, errors.New("incorrect email or password")
 	}
 
-	auth, err := s.store.CreateAuth(params.Email)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	tokenString, err := utils.SignIn(*auth)
-
+	tokenString, err := s.createAuthAndToken(params.Email)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
@@ -155,4 +188,14 @@ func (s *APIServer) deleteAuth(r *http.Request) (statusCode int, err error) {
 	}
 
 	return http.StatusOK, nil
+}
+
+func (s *APIServer) createAuthAndToken(email string) (tokenString string, err error) {
+	auth, err := s.store.CreateAuth(email)
+	if err != nil {
+		return "", err
+	}
+
+	tokenString, err = utils.CreateToken(*auth)
+	return
 }

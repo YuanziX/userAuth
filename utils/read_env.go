@@ -61,8 +61,62 @@ func ReadJWTSecret() (jwtSecret []byte, err error) {
 	}
 
 	if len(jwtSecret) == 0 {
-		return []byte{}, errors.New("missing required environment variables JWT_SECRET")
+		return []byte{}, errors.New("missing required environment variable JWT_SECRET")
 	}
 
 	return
+}
+
+func ReadBackendURL() (url string, err error) {
+	content, err := os.ReadFile(".env")
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	re := regexp.MustCompile(`^(BACKEND_URL)=(.*)$`)
+
+	for _, line := range lines {
+		matches := re.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			switch matches[1] {
+			case "BACKEND_URL":
+				url = matches[2]
+			}
+		}
+	}
+
+	if len(url) == 0 {
+		return "", errors.New("missing required environment variable JWT_SECRET")
+	}
+
+	return
+}
+
+func ReadGmailDetails() (email, password string, err error) {
+	content, err := os.ReadFile(".env")
+	if err != nil {
+		return "", "", err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	re := regexp.MustCompile(`^(GMAIL_EMAIL|GMAIL_APP_PASSWORD)=(.*)$`)
+
+	for _, line := range lines {
+		matches := re.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			switch matches[1] {
+			case "GMAIL_EMAIL":
+				email = matches[2]
+			case "GMAIL_APP_PASSWORD":
+				password = matches[2]
+			}
+		}
+	}
+
+	if email == "" || password == "" {
+		return "", "", errors.New("missing required environment variables GMAIL_EMAIL and GMAIL_APP_PASSWORD")
+	}
+
+	return email, password, nil
 }

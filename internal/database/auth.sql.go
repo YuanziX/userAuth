@@ -62,3 +62,16 @@ func (q *Queries) DeleteAuth(ctx context.Context, arg DeleteAuthParams) error {
 	_, err := q.db.ExecContext(ctx, deleteAuth, arg.UserEmail, arg.AuthUuid)
 	return err
 }
+
+const getAuth = `-- name: GetAuth :one
+SELECT auth_id, user_email, auth_uuid FROM auth
+WHERE
+    user_email = $1
+`
+
+func (q *Queries) GetAuth(ctx context.Context, userEmail string) (Auth, error) {
+	row := q.db.QueryRowContext(ctx, getAuth, userEmail)
+	var i Auth
+	err := row.Scan(&i.AuthID, &i.UserEmail, &i.AuthUuid)
+	return i, err
+}
