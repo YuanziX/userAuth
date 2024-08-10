@@ -46,6 +46,17 @@ func (q *Queries) CreateAuth(ctx context.Context, userEmail string) (Auth, error
 	return i, err
 }
 
+const deleteAllAuth = `-- name: DeleteAllAuth :exec
+DELETE FROM auth
+WHERE
+    user_email = $1
+`
+
+func (q *Queries) DeleteAllAuth(ctx context.Context, userEmail string) error {
+	_, err := q.db.ExecContext(ctx, deleteAllAuth, userEmail)
+	return err
+}
+
 const deleteAuth = `-- name: DeleteAuth :exec
 DELETE FROM auth
 WHERE

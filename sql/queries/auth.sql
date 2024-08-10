@@ -9,6 +9,11 @@ SELECT * FROM auth
 WHERE
     user_email = $1;
 
+-- name: DeleteAllAuth :exec
+DELETE FROM auth
+WHERE
+    user_email = $1;
+
 -- name: DeleteAuth :exec
 DELETE FROM auth
 WHERE

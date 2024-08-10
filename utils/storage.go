@@ -21,6 +21,7 @@ type Storage interface {
 	GetAuth(string) (*database.Auth, error)
 	CreateAuth(string) (*database.Auth, error)
 	DeleteAuth(models.AuthDetails) error
+	DeleteAllAuth(string) error
 	CheckAuthExists(models.AuthDetails) (bool, error)
 }
 
@@ -129,6 +130,11 @@ func (s *PostgresStore) DeleteAuth(auth models.AuthDetails) error {
 		AuthUuid:  auth.AuthUUID,
 	})
 
+	return err
+}
+
+func (s *PostgresStore) DeleteAllAuth(email string) error {
+	err := s.queries.DeleteAllAuth(context.Background(), email)
 	return err
 }
 

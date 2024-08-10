@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -108,6 +109,12 @@ func (s *APIServer) handleVerifyUser(w http.ResponseWriter, r *http.Request) (st
 	err = s.store.VerifyUser(email)
 	if err != nil {
 		return http.StatusInternalServerError, err
+	}
+
+	// Since only one auth is available at this point we can safely remove using mail as the parameter
+	err = s.store.DeleteAllAuth(email)
+	if err != nil {
+		log.Printf("could not delete auth for %v: %v", email, err)
 	}
 
 	return utils.WriteJSON(w, http.StatusOK, map[string]string{"verified": email})
