@@ -28,3 +28,8 @@ WHERE email = $1;
 UPDATE users
 SET verified = TRUE
 WHERE email = $1;
+
+-- name: IsUserVerified :one
+SELECT verified
+FROM users
+WHERE email = $1;

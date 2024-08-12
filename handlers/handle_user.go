@@ -96,6 +96,23 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 	return utils.WriteJSON(w, http.StatusCreated, models.DatabaseUserToUserResponse(databaseUser))
 }
 
+func (s *APIServer) handleIsVerified(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
+	email := r.PathValue("email")
+	if email == "" {
+		return http.StatusBadRequest, errors.New("email not provided")
+	}
+
+	isVerified, err := s.store.IsUserVerified(email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return http.StatusNotFound, err
+		}
+		return http.StatusInternalServerError, err
+	}
+
+	return utils.WriteJSON(w, http.StatusOK, map[string]bool{"verified": isVerified})
+}
+
 func (s *APIServer) handleVerifyUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
 	email := r.PathValue("email")
 	if email == "" {

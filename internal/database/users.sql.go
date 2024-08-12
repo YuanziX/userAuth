@@ -139,6 +139,19 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const isUserVerified = `-- name: IsUserVerified :one
+SELECT verified
+FROM users
+WHERE email = $1
+`
+
+func (q *Queries) IsUserVerified(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isUserVerified, email)
+	var verified bool
+	err := row.Scan(&verified)
+	return verified, err
+}
+
 const verifyUser = `-- name: VerifyUser :exec
 UPDATE users
 SET verified = TRUE

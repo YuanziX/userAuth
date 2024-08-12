@@ -13,6 +13,7 @@ import (
 type Storage interface {
 	CreateUser(*models.User) (*database.User, error)
 	VerifyUser(string) error
+	IsUserVerified(string) (bool, error)
 	DeleteUser(string) error
 	UpdateUser(*models.User) (*database.User, error)
 	GetUserByEmail(string) (*database.User, error)
@@ -65,6 +66,11 @@ func (s *PostgresStore) CreateUser(u *models.User) (*database.User, error) {
 		DateOfBirth:    u.DateOfBirth,
 	})
 	return &user, err
+}
+
+func (s *PostgresStore) IsUserVerified(email string) (bool, error) {
+	verified, err := s.queries.IsUserVerified(context.Background(), email)
+	return verified, err
 }
 
 func (s *PostgresStore) VerifyUser(email string) error {
