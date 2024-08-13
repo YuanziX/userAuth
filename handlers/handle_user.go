@@ -119,6 +119,11 @@ func (s *APIServer) handleVerifyUser(w http.ResponseWriter, r *http.Request) (st
 		return http.StatusBadRequest, errors.New("email not provided")
 	}
 
+	isVerified, err := s.store.IsUserVerified(email)
+	if err == nil && isVerified {
+		return http.StatusConflict, errors.New("email already verified")
+	}
+
 	if err = utils.ValidateToken(r, s.store.CheckAuthExists); err != nil {
 		return http.StatusUnauthorized, errors.New("invalid token")
 	}
