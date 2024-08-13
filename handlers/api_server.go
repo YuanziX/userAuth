@@ -27,8 +27,9 @@ func (s *APIServer) Run() {
 	router.HandleFunc("GET /users", s.makeHTTPHandlerFunc(s.handleGetUsers))
 
 	router.HandleFunc("POST /user", s.makeHTTPHandlerFunc(s.handleCreateUser))
-	router.HandleFunc(" /user/{email}/verify", s.makeHTTPHandlerFunc(s.handleVerifyUser))
-	router.HandleFunc(" /user/{email}/isVerified", s.makeHTTPHandlerFunc(s.handleIsVerified))
+	router.HandleFunc("GET /user/{email}/verify", s.makeHTTPHandlerFunc(s.handleVerifyUser))
+	router.HandleFunc("GET /user/{email}/isVerified", s.makeHTTPHandlerFunc(s.handleIsVerified))
+	router.HandleFunc("GET /user/{email}/resendVerificationMail", s.makeHTTPHandlerFunc(s.handleResendVerificationMail))
 
 	router.HandleFunc("GET /user/{email}", s.makeProtectedHandlerFunc(s.handleGetUserByEmail))
 	router.HandleFunc("DELETE /user/{email}", s.makeProtectedHandlerFunc(s.handleDeleteUser))

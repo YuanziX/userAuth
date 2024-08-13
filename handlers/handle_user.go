@@ -77,13 +77,8 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 		return http.StatusInternalServerError, err
 	}
 
-	tokenString, err := s.createAuthAndToken(params.Email)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+	err = s.sendVerificationMail(params.Email)
 
-	url, _ := utils.ReadBackendURL()
-	err = utils.SendMail(params.Email, "Verify your email", fmt.Sprintf("Click here to verify your email: %v/user/%v/verify?token=%v", url, databaseUser.Email, tokenString))
 	if err != nil {
 		response := map[string]interface{}{
 			"message": "account created, but could not send email",
@@ -94,6 +89,20 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 	}
 
 	return utils.WriteJSON(w, http.StatusCreated, models.DatabaseUserToUserResponse(databaseUser))
+}
+
+func (s *APIServer) handleResendVerificationMail(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
+	email := r.PathValue("email")
+	isVerified, err := s.store.IsUserVerified(email)
+	if err == nil && isVerified {
+		return http.StatusConflict, errors.New("email already verified")
+	}
+
+	err = s.sendVerificationMail(email)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	return utils.WriteJSON(w, http.StatusOK, map[string]string{"resent": email})
 }
 
 func (s *APIServer) handleIsVerified(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
@@ -227,4 +236,15 @@ func (s *APIServer) createAuthAndToken(email string) (tokenString string, err er
 
 	tokenString, err = utils.CreateToken(*auth)
 	return
+}
+
+func (s *APIServer) sendVerificationMail(email string) error {
+	tokenString, err := s.createAuthAndToken(email)
+	if err != nil {
+		return err
+	}
+
+	url, _ := utils.ReadBackendURL()
+	err = utils.SendMail(email, "Verify your email", fmt.Sprintf("Click here to verify your email: %v/user/%v/verify?token=%v", url, email, tokenString))
+	return err
 }
