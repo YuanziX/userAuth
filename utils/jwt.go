@@ -34,27 +34,27 @@ func CreateToken(auth database.Auth) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateToken(r *http.Request, checkExists func(models.AuthDetails) (bool, error)) error {
+func ValidateToken(r *http.Request, checkExists func(models.AuthDetails) (bool, error)) (string, error) {
 	token, err := VerifyToken(r)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	auth, err := ExtractTokenAuth(r)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	exists, err := checkExists(*auth)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if !exists || !token.Valid {
-		return errors.New("invalid token")
+		return "", errors.New("invalid token")
 	}
 
-	return nil
+	return auth.UserEmail, nil
 }
 
 func VerifyToken(r *http.Request) (*jwt.Token, error) {

@@ -21,9 +21,7 @@ func (s *APIServer) handleGetUsers(w http.ResponseWriter, r *http.Request) (stat
 	return utils.WriteJSON(w, http.StatusOK, models.DatabaseUsersToUserResponses(users))
 }
 
-func (s *APIServer) handleGetUserByEmail(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
-	email := r.PathValue("email")
-
+func (s *APIServer) handleGetUserByEmail(w http.ResponseWriter, r *http.Request, email string) (statusCode int, err error) {
 	user, err := s.store.GetUserByEmail(email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -92,7 +90,11 @@ func (s *APIServer) handleCreateUser(w http.ResponseWriter, r *http.Request) (st
 }
 
 func (s *APIServer) handleResendVerificationMail(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
-	email := r.PathValue("email")
+	email := r.URL.Query().Get("email")
+	if email == "" {
+		return http.StatusBadRequest, errors.New("email not provided")
+	}
+
 	isVerified, err := s.store.IsUserVerified(email)
 	if err == nil && isVerified {
 		return http.StatusConflict, errors.New("email already verified")
@@ -106,7 +108,7 @@ func (s *APIServer) handleResendVerificationMail(w http.ResponseWriter, r *http.
 }
 
 func (s *APIServer) handleIsVerified(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
-	email := r.PathValue("email")
+	email := r.URL.Query().Get("email")
 	if email == "" {
 		return http.StatusBadRequest, errors.New("email not provided")
 	}
@@ -122,19 +124,10 @@ func (s *APIServer) handleIsVerified(w http.ResponseWriter, r *http.Request) (st
 	return utils.WriteJSON(w, http.StatusOK, map[string]bool{"verified": isVerified})
 }
 
-func (s *APIServer) handleVerifyUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
-	email := r.PathValue("email")
-	if email == "" {
-		return http.StatusBadRequest, errors.New("email not provided")
-	}
-
+func (s *APIServer) handleVerifyUser(w http.ResponseWriter, r *http.Request, email string) (statusCode int, err error) {
 	isVerified, err := s.store.IsUserVerified(email)
 	if err == nil && isVerified {
 		return http.StatusConflict, errors.New("email already verified")
-	}
-
-	if err = utils.ValidateToken(r, s.store.CheckAuthExists); err != nil {
-		return http.StatusUnauthorized, errors.New("invalid token")
 	}
 
 	err = s.store.VerifyUser(email)
@@ -188,7 +181,7 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) (statusC
 	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"login": "successful", "token_string": tokenString})
 }
 
-func (s *APIServer) handleLogout(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
+func (s *APIServer) handleLogout(w http.ResponseWriter, r *http.Request, email string) (statusCode int, err error) {
 	statusCode, err = s.deleteAuth(r)
 	if err != nil {
 		return statusCode, err
@@ -196,9 +189,7 @@ func (s *APIServer) handleLogout(w http.ResponseWriter, r *http.Request) (status
 	return utils.WriteJSON(w, http.StatusAccepted, map[string]string{"logged_out": "successfully"})
 }
 
-func (s *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) (statusCode int, err error) {
-	email := r.PathValue("email")
-
+func (s *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request, email string) (statusCode int, err error) {
 	statusCode, err = s.deleteAuth(r)
 	if err != nil {
 		return statusCode, err
@@ -245,6 +236,6 @@ func (s *APIServer) sendVerificationMail(email string) error {
 	}
 
 	url, _ := utils.ReadBackendURL()
-	err = utils.SendMail(email, "Verify your email", fmt.Sprintf("Click here to verify your email: %v/user/%v/verify?token=%v", url, email, tokenString))
+	err = utils.SendMail(email, "Verify your email", fmt.Sprintf("Click here to verify your email: %v/user/verify?token=%v", url, tokenString))
 	return err
 }
